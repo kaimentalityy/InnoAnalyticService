@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-create-ratings-analytics-table" author="kai">
+        <comment>Create table for driver and service ratings</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS ratings_analytics (
+                rating_id UUID,
+                order_id UInt64,
+                target_id String,
+                score UInt8,
+                comment String,
+                event_time DateTime64(3, 'UTC')
+            ) 
+            ENGINE = MergeTree()
+            ORDER BY (target_id, event_time);
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS ratings_analytics</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

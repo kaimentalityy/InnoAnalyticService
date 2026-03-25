@@ -1,0 +1,28 @@
+server:
+  port: ${ANALYTIC_SERVICE_PORT:8089}
+
+spring:
+  application:
+     name: InnoAnalyticService
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: analytic-service
+      auto-offset-reset: earliest
+      properties:
+        "[spring.json.trusted.packages]": "com.innowise.*"
+        "[spring.json.use.type.headers]": false
+    topic:
+      user-lifecycle: user-lifecycle
+      order-events: order-events
+      payment-events: payment-events
+      rating-events: rating-events
+
+clickhouse:
+  nodes:
+    - host: ${CLICKHOUSE_HOST:localhost}
+      port: ${CLICKHOUSE_PORT:8123}
+      database: ${CLICKHOUSE_DATABASE:analytics}
+      username: ${CLICKHOUSE_USERNAME:default}
+      password: ${CLICKHOUSE_PASSWORD:}

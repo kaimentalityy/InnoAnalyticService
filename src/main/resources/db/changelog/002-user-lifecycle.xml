@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-create-user-lifecycle-table" author="kai">
+        <comment>Create table for user behavior event tracking</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS user_lifecycle (
+                user_id String,
+                event_type Enum8('REGISTER' = 1, 'LOGIN' = 2, 'CARD_ADDED' = 3, 'DELETE' = 4),
+                ip_address IPv4,
+                user_agent String,
+                event_time DateTime64(3, 'UTC')
+            ) 
+            ENGINE = MergeTree()
+            ORDER BY (event_time, user_id);
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS user_lifecycle</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
