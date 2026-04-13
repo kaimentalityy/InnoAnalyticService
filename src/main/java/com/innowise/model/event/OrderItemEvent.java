@@ -6,8 +6,8 @@ import java.math.BigDecimal;
 
 @Builder
 public record OrderItemEvent(
-        Long productId,
-        String productName,
-        Integer quantity,
-        BigDecimal price) {
+                Long itemId,
+                String itemName,
+                Integer quantity,
+                BigDecimal price) {
 }

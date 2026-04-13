@@ -19,7 +19,7 @@ public record OrderCreatedEvent(
         String userEmail,
         OrderStatus status,
         BigDecimal totalAmount,
-        List<OrderItemEvent> items) {
+        List<OrderItemEvent> items) implements AnalyticsEvent {
     public OrderCreatedEvent {
         if (eventId == null)
             eventId = UUID.randomUUID().toString();
@@ -27,5 +27,29 @@ public record OrderCreatedEvent(
             eventType = EventType.ORDER_CREATE;
         if (eventTimestamp == null)
             eventTimestamp = LocalDateTime.now();
+    }
+
+    @Override
+    public String getEventId() {
+        return eventId;
+    }
+
+    @Override
+    public EventType getEventType() {
+        return eventType;
+    }
+
+    @Override
+    public LocalDateTime getEventTimestamp() {
+        return eventTimestamp;
+    }
+
+    @Override
+    public String getTableName() {
+        return "orders_analytics";
+    }
+
+    public int getItemCount() {
+        return items != null ? items.size() : 0;
     }
 }

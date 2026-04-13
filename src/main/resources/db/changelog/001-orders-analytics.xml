@@ -9,8 +9,10 @@
         <comment>Create main table for order analytics</comment>
         <sql>
             CREATE TABLE IF NOT EXISTS orders_analytics (
+                event_id String,
+                event_type String,
                 order_id UInt64,
-                order_status Enum8('PAYMENT_PENDING' = 1, 'CONFIRMED' = 2, 'CANCELLED' = 3),
+                status Enum8('PAYMENT_PENDING' = 1, 'CONFIRMED' = 2, 'CANCELLED' = 3),
                 total_amount Decimal(18, 2),
                 user_id String,
                 user_email String,

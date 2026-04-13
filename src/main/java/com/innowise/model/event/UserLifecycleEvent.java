@@ -14,11 +14,33 @@ public record UserLifecycleEvent(
         String userId,
         String email,
         String ipAddress,
-        String userAgent) {
+        String userAgent) implements AnalyticsEvent {
     public UserLifecycleEvent {
         if (eventId == null)
             eventId = UUID.randomUUID().toString();
+        if (eventType == null)
+            eventType = EventType.USER_CREATE;
         if (eventTimestamp == null)
             eventTimestamp = LocalDateTime.now();
+    }
+
+    @Override
+    public String getEventId() {
+        return eventId;
+    }
+
+    @Override
+    public EventType getEventType() {
+        return eventType;
+    }
+
+    @Override
+    public LocalDateTime getEventTimestamp() {
+        return eventTimestamp;
+    }
+
+    @Override
+    public String getTableName() {
+        return "user_lifecycle";
     }
 }

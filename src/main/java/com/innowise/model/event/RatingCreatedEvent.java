@@ -15,7 +15,7 @@ public record RatingCreatedEvent(
         Long orderId,
         String targetId,
         Integer score,
-        String comment) {
+        String comment) implements AnalyticsEvent {
     public RatingCreatedEvent {
         if (eventId == null)
             eventId = UUID.randomUUID().toString();
@@ -23,5 +23,25 @@ public record RatingCreatedEvent(
             eventType = EventType.RATING_CREATE;
         if (eventTimestamp == null)
             eventTimestamp = LocalDateTime.now();
+    }
+
+    @Override
+    public String getEventId() {
+        return eventId;
+    }
+
+    @Override
+    public EventType getEventType() {
+        return eventType;
+    }
+
+    @Override
+    public LocalDateTime getEventTimestamp() {
+        return eventTimestamp;
+    }
+
+    @Override
+    public String getTableName() {
+        return "ratings_analytics";
     }
 }

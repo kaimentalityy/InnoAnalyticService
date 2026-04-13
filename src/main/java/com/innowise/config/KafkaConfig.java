@@ -1,5 +1,10 @@
 package com.innowise.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.innowise.model.event.AnalyticsEvent;
+import com.innowise.model.event.UserLifecycleEvent;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -32,9 +37,6 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
-
-    @Value("${spring.kafka.consumer.properties.spring.json.trusted.packages:com.innowise.*}")
-    private String trustedPackages;
 
     @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
@@ -72,55 +74,61 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
+    /**
+     * ObjectMapper configured for Kafka deserialization:
+     * - JavaTimeModule handles LocalDateTime from the producer's ISO-8601 or array
+     * format
+     * - WRITE_DATES_AS_TIMESTAMPS disabled so LocalDateTime is read as a string
+     */
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
+    public ObjectMapper kafkaObjectMapper() {
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    @Bean
+    public ConsumerFactory<String, AnalyticsEvent> consumerFactory(ObjectMapper kafkaObjectMapper) {
+        JsonDeserializer<AnalyticsEvent> deserializer = new JsonDeserializer<>(AnalyticsEvent.class,
+                kafkaObjectMapper);
+        deserializer.setUseTypeHeaders(false);
+        deserializer.addTrustedPackages("com.innowise.*");
+
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
 
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-
-        props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
-        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, trustedPackages);
-
-        return new DefaultKafkaConsumerFactory<>(props);
+        return new DefaultKafkaConsumerFactory<>(
+                props,
+                new StringDeserializer(),
+                new ErrorHandlingDeserializer<>(deserializer));
     }
 
     @Bean
     public DefaultErrorHandler errorHandler(KafkaTemplate<String, Object> kafkaTemplate) {
-
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
-                (r, e) -> new TopicPartition(r.topic() + ".DLT", r.partition())
-        );
+                (r, e) -> new TopicPartition(r.topic() + ".DLT", r.partition()));
 
         FixedBackOff backOff = new FixedBackOff(1000L, 3);
 
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
-
         errorHandler.addNotRetryableExceptions(
                 IllegalArgumentException.class,
-                NullPointerException.class,
-                RuntimeException.class
-        );
-        errorHandler.addRetryableExceptions(
-                SocketTimeoutException.class
-        );
+                NullPointerException.class);
+        errorHandler.addRetryableExceptions(SocketTimeoutException.class);
 
         return errorHandler;
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(DefaultErrorHandler errorHandler) {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+    public ConcurrentKafkaListenerContainerFactory<String, AnalyticsEvent> kafkaListenerContainerFactory(
+            ConsumerFactory<String, AnalyticsEvent> consumerFactory,
+            DefaultErrorHandler errorHandler) {
+        ConcurrentKafkaListenerContainerFactory<String, AnalyticsEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
         factory.setCommonErrorHandler(errorHandler);
-
         return factory;
     }
 }

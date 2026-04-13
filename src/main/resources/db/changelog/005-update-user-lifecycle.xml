@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="005-update-user-lifecycle-enum" author="kai">
+        <comment>Update user_lifecycle event_type enum to include USER_CREATE and align with Java enums</comment>
+        <sql>
+            ALTER TABLE user_lifecycle MODIFY COLUMN event_type Enum8('USER_CREATE' = 1, 'USER_REGISTER' = 2, 'USER_LOGIN' = 3, 'CARD_ADDED' = 4, 'USER_DELETE' = 5, 'REGISTER' = 6, 'LOGIN' = 7, 'DELETE' = 8);
+        </sql>
+        <rollback>
+            <sql>
+                ALTER TABLE user_lifecycle MODIFY COLUMN event_type Enum8('REGISTER' = 1, 'LOGIN' = 2, 'CARD_ADDED' = 3, 'DELETE' = 4);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

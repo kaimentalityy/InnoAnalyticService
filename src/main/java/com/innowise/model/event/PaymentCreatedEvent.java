@@ -17,7 +17,7 @@ public record PaymentCreatedEvent(
         Long orderId,
         String userId,
         BigDecimal amount,
-        PaymentStatus status) {
+        PaymentStatus status) implements AnalyticsEvent {
     public PaymentCreatedEvent {
         if (eventId == null)
             eventId = UUID.randomUUID().toString();
@@ -25,5 +25,25 @@ public record PaymentCreatedEvent(
             eventType = EventType.CREATE_PAYMENT;
         if (eventTimestamp == null)
             eventTimestamp = LocalDateTime.now();
+    }
+
+    @Override
+    public String getEventId() {
+        return eventId;
+    }
+
+    @Override
+    public EventType getEventType() {
+        return eventType;
+    }
+
+    @Override
+    public LocalDateTime getEventTimestamp() {
+        return eventTimestamp;
+    }
+
+    @Override
+    public String getTableName() {
+        return "payment_analytics";
     }
 }
