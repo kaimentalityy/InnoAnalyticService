@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="004-create-hourly-revenue-aggregates" author="kai">
+        <comment>Create materialized view for real-time revenue dashboard</comment>
+        <sql>
+            -- Aggregate table
+            CREATE TABLE IF NOT EXISTS hourly_revenue_mv (
+                hour DateTime,
+                total_revenue AggregateFunction(sum, Decimal(18, 2)),
+                order_count AggregateFunction(count, UInt64)
+            ) 
+            ENGINE = AggregatingMergeTree()
+            ORDER BY hour;
+
+            -- Materialized View worker
+            CREATE MATERIALIZED VIEW IF NOT EXISTS hourly_revenue_worker TO hourly_revenue_mv AS
+            SELECT
+                toStartOfHour(event_time) AS hour,
+                sumState(total_amount) AS total_revenue,
+                countState(order_id) AS order_count
+            FROM orders_analytics
+            GROUP BY hour;
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS hourly_revenue_worker</sql>
+            <sql>DROP TABLE IF EXISTS hourly_revenue_mv</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

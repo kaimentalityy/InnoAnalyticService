@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-orders-analytics-table" author="kai">
+        <comment>Create main table for order analytics</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS orders_analytics (
+                order_id UInt64,
+                order_status Enum8('PAYMENT_PENDING' = 1, 'CONFIRMED' = 2, 'CANCELLED' = 3),
+                total_amount Decimal(18, 2),
+                user_id String,
+                user_email String,
+                item_count UInt16,
+                event_time DateTime64(3, 'UTC'),
+                processed_at DateTime DEFAULT now()
+            ) 
+            ENGINE = MergeTree()
+            PARTITION BY toYYYYMM(event_time)
+            ORDER BY (event_time, order_id);
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS orders_analytics</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="002-create-user-lifecycle-table" author="kai">
+        <comment>Create table for user behavior event tracking</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS user_lifecycle (
+                user_id String,
+                event_type Enum8('REGISTER' = 1, 'LOGIN' = 2, 'CARD_ADDED' = 3, 'DELETE' = 4),
+                ip_address IPv4,
+                user_agent String,
+                event_time DateTime64(3, 'UTC')
+            ) 
+            ENGINE = MergeTree()
+            ORDER BY (event_time, user_id);
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS user_lifecycle</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="003-create-ratings-analytics-table" author="kai">
+        <comment>Create table for driver and service ratings</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS ratings_analytics (
+                rating_id UUID,
+                order_id UInt64,
+                target_id String,
+                score UInt8,
+                comment String,
+                event_time DateTime64(3, 'UTC')
+            ) 
+            ENGINE = MergeTree()
+            ORDER BY (target_id, event_time);
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS ratings_analytics</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="004-create-hourly-revenue-aggregates" author="kai">
+        <comment>Create materialized view for real-time revenue dashboard</comment>
+        <sql>
+            -- Aggregate table
+            CREATE TABLE IF NOT EXISTS hourly_revenue_mv (
+                hour DateTime,
+                total_revenue AggregateFunction(sum, Decimal(18, 2)),
+                order_count AggregateFunction(count, UInt64)
+            ) 
+            ENGINE = AggregatingMergeTree()
+            ORDER BY hour;
+
+            -- Materialized View worker
+            CREATE MATERIALIZED VIEW IF NOT EXISTS hourly_revenue_worker TO hourly_revenue_mv AS
+            SELECT
+                toStartOfHour(event_time) AS hour,
+                sumState(total_amount) AS total_revenue,
+                countState(order_id) AS order_count
+            FROM orders_analytics
+            GROUP BY hour;
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS hourly_revenue_worker</sql>
+            <sql>DROP TABLE IF EXISTS hourly_revenue_mv</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

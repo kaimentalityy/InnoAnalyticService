@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <include file="db/changelog/001-orders-analytics.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/002-user-lifecycle.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/003-ratings-analytics.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/004-aggregates.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/005-update-user-lifecycle.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/006-payment-analytics.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/007-fix-user-lifecycle.xml" relativeToChangelogFile="false"/>
+    <include file="db/changelog/008-fix-user-lifecycle-columns.xml" relativeToChangelogFile="false"/>
+
+</databaseChangeLog>

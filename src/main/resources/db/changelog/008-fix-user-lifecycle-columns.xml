@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-fix-user-lifecycle-event-id-and-ip" author="kai">
+        <comment>
+            Add missing event_id column (consistent with all other analytics tables) and change
+            ip_address from IPv4 to String so that fallback values like 'unknown' are accepted.
+        </comment>
+        <sql>
+            ALTER TABLE user_lifecycle
+                ADD COLUMN IF NOT EXISTS event_id String FIRST,
+                MODIFY COLUMN ip_address String;
+        </sql>
+        <rollback>
+            <sql>
+                ALTER TABLE user_lifecycle
+                    DROP COLUMN IF EXISTS event_id,
+                    MODIFY COLUMN ip_address IPv4;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

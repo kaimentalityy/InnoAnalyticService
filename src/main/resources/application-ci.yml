@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: jdbc:clickhouse://${CLICKHOUSE_HOST:localhost}:${CLICKHOUSE_PORT:8123}/${CLICKHOUSE_DATABASE:analytics}
+    username: ${CLICKHOUSE_USERNAME:default}
+    password: ${CLICKHOUSE_PASSWORD:}
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/changelog-master.xml
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: analytic-service
+      auto-offset-reset: earliest
+      properties:
+        "[spring.json.trusted.packages]": "com.innowise.*"
+        "[spring.json.use.type.headers]": false
+    topic:
+      analytics: analytics-events
+
+clickhouse:
+  nodes:
+    - host: ${CLICKHOUSE_HOST:localhost}
+      port: ${CLICKHOUSE_PORT:8123}
+      database: ${CLICKHOUSE_DATABASE:analytics}
+      username: ${CLICKHOUSE_USERNAME:default}
+      password: ${CLICKHOUSE_PASSWORD:}
+
+logging:
+  level:
+    com.innowise: DEBUG
+    org.springframework.kafka: INFO
+    com.clickhouse: INFO

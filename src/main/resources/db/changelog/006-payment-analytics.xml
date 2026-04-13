@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="006-create-payment-analytics-table" author="kai">
+        <comment>Create main table for payment analytics</comment>
+        <sql>
+            CREATE TABLE IF NOT EXISTS payment_analytics (
+                event_id String,
+                event_type String,
+                payment_id String,
+                order_id UInt64,
+                user_id String,
+                amount Decimal(18, 2),
+                status Enum8('PENDING' = 1, 'SUCCESS' = 2, 'FAILED' = 3),
+                event_time DateTime64(3, 'UTC'),
+                processed_at DateTime DEFAULT now()
+            ) 
+            ENGINE = MergeTree()
+            PARTITION BY toYYYYMM(event_time)
+            ORDER BY (event_time, payment_id);
+        </sql>
+        <rollback>
+            <sql>DROP TABLE IF EXISTS payment_analytics</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
