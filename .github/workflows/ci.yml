@@ -12,38 +12,37 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8123/ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
       kafka:
-        image: bitnami/kafka:3.6
+        image: confluentinc/cp-kafka:latest
         ports:
           - 9092:9092
         env:
-          KAFKA_CFG_NODE_ID: 0
-          KAFKA_CFG_PROCESS_ROLES: controller,broker
-          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
-          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-          KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
-          KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-          KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          ALLOW_PLAINTEXT_LISTENER: yes
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
         options: >-
-          --health-cmd "kafka-topics.sh --bootstrap-server localhost:9092 --list"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 15
-
-      clickhouse:
-        image: clickhouse/clickhouse-server:23.8
-        ports:
-          - 8123:8123
-        env:
-          CLICKHOUSE_DB: analytics
-          CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-        options: >-
-          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"
+          --health-cmd "kafka-broker-api-versions --bootstrap-server localhost:9092"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
+
+      zookeeper:
+        image: confluentinc/cp-zookeeper:latest
+        ports:
+          - 2181:2181
+        env:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
 
     env:
       CLICKHOUSE_HOST: clickhouse
@@ -67,26 +66,24 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Install netcat and wget
-        run: sudo apt-get update && sudo apt-get install -y netcat-openbsd wget
+      - name: Install wget
+        run: sudo apt-get update && sudo apt-get install -y wget
 
-      - name: Wait for services to be ready
+      - name: Wait for ClickHouse to be ready
         run: |
-          echo "Waiting for Kafka..."
-          for i in {1..45}; do
-            nc -z kafka 9092 && echo "Kafka is up!" && break
-            echo "⏳ Waiting for Kafka..."
-            sleep 2
-          done
-          
-          echo "Waiting for ClickHouse..."
-          for i in {1..30}; do
+          for i in {1..10}; do
             wget --no-verbose --tries=1 --spider http://clickhouse:8123/ping && echo "ClickHouse is up!" && break
             echo "⏳ Waiting for ClickHouse..."
-            sleep 2
+            sleep 5
           done
-          
-          echo "All services are ready!"
+
+      - name: Wait for Kafka to be ready
+        run: |
+          for i in {1..10}; do
+            nc -z kafka 9092 && echo "Kafka is up!" && break
+            echo "⏳ Waiting for Kafka..."
+            sleep 5
+          done
 
       - name: Build and run tests
         run: mvn clean verify -Dspring.profiles.active=ci
