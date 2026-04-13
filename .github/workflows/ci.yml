@@ -22,7 +22,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
-      # Zookeeper must be defined BEFORE Kafka in the YAML for better startup ordering
       zookeeper:
         image: confluentinc/cp-zookeeper:7.4.0
         ports:
@@ -37,7 +36,6 @@ jobs:
           - 9092:9092
         env:
           KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-          # Internal listener for Kafka (29092) and External for your Tests (9092)
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
           KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
           KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -55,7 +53,6 @@ jobs:
       CLICKHOUSE_DATABASE: analytics
       CLICKHOUSE_USERNAME: default
       CLICKHOUSE_PASSWORD: ""
-      # IMPORTANT: Tests run on the host runner, so they use localhost
       KAFKA_BOOTSTRAP_SERVERS: localhost:9092
       SPRING_PROFILES_ACTIVE: ci
       LIQUIBASE_ENABLED: true
